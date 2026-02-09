@@ -46,24 +46,46 @@
     {{-- Make Appointment Action (Compact) --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
         @foreach ($listAppointment as $type)
-            <a href="{{ route('appointment.new', ['hn' => $patient['hn'], 'type' => $type['code']]) }}" class="block group">
+            @if ($type['exist'] == false)
+                <a href="{{ route('appointment.new', ['hn' => $patient['hn'], 'type' => $type['code']]) }}"
+                    class="block group">
+                    <div
+                        class="bg-[#ffea29] hover:bg-[#ffe200] rounded-xl p-3 shadow-md shadow-[#ffea29]/20 flex items-center justify-between transition-all transform group-hover:scale-[1.02] group-active:scale-95 border-b-2 border-black/10">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-black/5 p-2 rounded-lg">
+                                <i class="fa-solid fa-calendar-plus text-lg text-slate-800"></i>
+                            </div>
+                            <div class="text-sm font-bold text-slate-800">
+                                @if (session('langSelect') == 'TH')
+                                    ทำนัด{{ $type['name'] }}
+                                @else
+                                    {{ $type['name_eng'] }} Appt
+                                @endif
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-800/30 text-xs"></i>
+                    </div>
+                </a>
+            @else
                 <div
-                    class="bg-[#ffea29] hover:bg-[#ffe200] rounded-xl p-3 shadow-md shadow-[#ffea29]/20 flex items-center justify-between transition-all transform group-hover:scale-[1.02] group-active:scale-95 border-b-2 border-black/10">
+                    class="bg-[#cccccc] cursor-pointer rounded-xl p-3 shadow-md shadow-[#ffea29]/20 flex items-center justify-between transition-all transform group-hover:scale-[1.02] group-active:scale-95 border-b-2 border-black/10">
                     <div class="flex items-center space-x-3">
                         <div class="bg-black/5 p-2 rounded-lg">
                             <i class="fa-solid fa-calendar-plus text-lg text-slate-800"></i>
                         </div>
                         <div class="text-sm font-bold text-slate-800">
                             @if (session('langSelect') == 'TH')
-                                ทำนัด{{ $type['name'] }}
+                                มีการทำนัด {{ $type['name'] }} แล้ว
+                                <div class="text-xs text-red-500">กรุณายกเลิกนัดเดิมก่อน</div>
                             @else
-                                {{ $type['name_eng'] }} Appt
+                                Already have an appointment {{ $type['name_eng'] }}
+                                <div class="text-xs text-red-500">Please cancel the previous appointment first</div>
                             @endif
                         </div>
                     </div>
                     <i class="fa-solid fa-chevron-right text-slate-800/30 text-xs"></i>
                 </div>
-            </a>
+            @endif
         @endforeach
     </div>
 
@@ -93,7 +115,8 @@
                     <div class="flex-1">
                         <div class="flex items-start justify-between">
                             <div>
-                                <h3 class="font-bold text-slate-800 text-lg leading-tight mb-1">{{ $appointment['Doctor'] }}
+                                <h3 class="font-bold text-slate-800 text-lg leading-tight mb-1">
+                                    {{ $appointment['Doctor'] }}
                                 </h3>
                                 <p class="text-sm text-slate-500 font-medium mb-2">{{ $appointment['Clinic'] }}</p>
                             </div>

@@ -18,6 +18,7 @@ class WebController extends Controller
             'clinic' => '1800',
             'doctor' => 'V9999',
             'time' => '12:00',
+            'exist' => false,
         ],
         'VAP' => [
             'code' => 'VAP',
@@ -26,6 +27,7 @@ class WebController extends Controller
             'clinic' => '1800',
             'doctor' => 'V9999',
             'time' => '13:00',
+            'exist' => false,
         ],
     ];
 
@@ -232,12 +234,12 @@ class WebController extends Controller
         foreach ($findAppointment as $app) {
             $checkAppointment = substr($app->AppointmentNo, 0, 3);
             if (array_key_exists($checkAppointment, $listAppointment)) {
-                unset($listAppointment[$checkAppointment]);
+                $listAppointment[$checkAppointment]['exist'] = true;
             }
 
             $date = date('Y-m-d', strtotime($app->AppointDateTime));
             $fulldate = $this->setfullDate($date);
-            $patient['appointments'][$date] = [
+            $patient['appointments'][] = [
                 'Date' => $fulldate,
                 'AppointmentNo' => $app->AppointmentNo,
                 'Doctor' => $this->setDoctor($app->Doctor),
@@ -340,25 +342,54 @@ class WebController extends Controller
             'phone' => $phone,
         ];
 
+        $listAppointment = $this->listAppointment;
+        $myAppointments = DB::connection('SSB')
+            ->table('HNAPPMNT_HEADER')
+            ->where('HNAPPMNT_HEADER.HN', $hn)
+            ->whereNull('HNAPPMNT_HEADER.cxlReasonCode')
+            ->orderBy('HNAPPMNT_HEADER.AppointDateTime', 'asc')
+            ->where('HNAPPMNT_HEADER.AppointDateTime', '>=', date('Y-m-d'))
+            ->select(
+                'HNAPPMNT_HEADER.AppointmentNo',
+                'HNAPPMNT_HEADER.AppointDateTime',
+                'HNAPPMNT_HEADER.Clinic',
+                'HNAPPMNT_HEADER.Doctor',
+            )
+            ->get();
+
+        if ($myAppointments->count() > 0) {
+            foreach ($myAppointments as $appointment) {
+                $checkAppointment = substr($appointment->AppointmentNo, 0, 3);
+                if (array_key_exists($checkAppointment, $listAppointment)) {
+                    $listAppointment[$checkAppointment]['exist'] = true;
+                }
+            }
+        }
+
         if ($request->appointment_code == 'SAP') {
             $successAppoint = '';
-            $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_CHECKUP'), $patient, $request->date, '12:00', 'นัดหมายตรวจสุขภาพ', $remark);
-            if ($create_response) {
-                $successAppoint .= 'นัดหมายตรวจสุขภาพสำเร็จ <br>';
+
+            if (! $listAppointment['SAP']['exist']) {
+                $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_CHECKUP'), $patient, $request->date, '12:00', 'นัดหมายตรวจสุขภาพ', $remark);
+                if ($create_response) {
+                    $successAppoint .= 'นัดหมายตรวจสุขภาพสำเร็จ <br>';
+                }
             }
+
             $vaccine_response = true;
-            if ($request->date >= '2026-04-01') {
+            if ($request->date >= '2026-04-01' && ! $listAppointment['VAP']['exist']) {
                 $vaccine_response = $this->createAppointment(env('APPOINTMENT_CREATE_VACCINE'), $patient, $request->date, '13:00', 'นัดฉีดวัคซีน', $remark);
                 if ($vaccine_response) {
                     $successAppoint .= 'นัดฉีดวัคซีนสำเร็จ <br>';
                 }
             }
+
             if ($create_response || $vaccine_response) {
                 $response['status'] = 'success';
                 $response['message'] = $successAppoint;
             }
 
-        } elseif ($request->appointment_code == 'VAP') {
+        } elseif ($request->appointment_code == 'VAP' && ! $listAppointment['VAP']['exist']) {
             $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_VACCINE'), $patient, $request->date, '13:00', 'นัดฉีดวัคซีน', $remark);
             if ($create_response) {
                 $response['status'] = 'success';
@@ -408,7 +439,7 @@ class WebController extends Controller
 
             $response = true;
         } else {
-            dump($response->body());
+
             $response = false;
         }
 
