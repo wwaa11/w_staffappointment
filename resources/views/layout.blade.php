@@ -105,7 +105,18 @@
 
     <main class="max-w-4xl mx-auto px-4 py-8">
         {{-- Location Badge --}}
-        <div class="flex justify-center mb-8">
+        <div class="flex justify-center mb-8 gap-2">
+            <div
+                class="bg-white px-4 py-2 rounded-2xl flex items-center space-x-2 border border-[#4db1ab]/20 shadow-sm shadow-[#4db1ab]/5 transition-all hover:scale-105 group cursor-default">
+                <a href="{{ route('index') }}">
+                    <i class="fa-solid fa-house text-[#4db1ab]"></i>
+                    @if (session('langSelect') == 'TH')
+                        กลับหน้าแรก
+                    @else
+                        Back to Home
+                    @endif
+                </a>
+            </div>
             <div
                 class="bg-white px-4 py-2 rounded-2xl flex items-center space-x-2 border border-[#4db1ab]/20 shadow-sm shadow-[#4db1ab]/5 transition-all hover:scale-105 group cursor-default">
                 <i class="fa-solid fa-location-dot text-[#4db1ab] animate-bounce"></i>
@@ -117,6 +128,7 @@
                     @endif
                 </span>
             </div>
+
         </div>
 
         <div class="w-full">

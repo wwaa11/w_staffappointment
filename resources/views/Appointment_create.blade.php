@@ -15,7 +15,7 @@
             @if (session('langSelect') == 'TH')
                 ทำนัดหมาย <span class="text-[#4db1ab]">{{ $patient['appointment_name']['name'] }}</span>
             @else
-                New <span class="text-[#4db1ab]">{{ $patient['appointment_name']['name_en'] }}</span>
+                New <span class="text-[#4db1ab]">{{ $patient['appointment_name']['name_eng'] }}</span>
             @endif
         </h2>
         <p class="text-sm text-slate-400 mt-1 font-medium">

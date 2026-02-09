@@ -71,10 +71,28 @@
 @endsection
 @section('scripts')
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            $('#inputSearch').focus();
+            $('#inputSearch').keypress(function(e) {
+                if (e.which == 13) {
+                    checkReferance();
+                }
+            });
+        });
+
         function checkReferance() {
             var input = $('#inputSearch').val();
-            $('#btnCheck').hide();
-            $('#btnChecking').show();
+
+            swal.fire({
+                title: "Searching...",
+                icon: "info",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+            });
+
+            $('#search').hide();
+            $('#searching').show();
 
             if ('{{ session('langSelect') }}' == "TH") {
                 search = "โปรดกรอกรายละเอียด"
@@ -99,7 +117,7 @@
                 return;
             }
 
-            axios.post('{{ route('search') }}', {
+            axios.post('{{ route('patient.search') }}', {
                 'input': input
             }).then((res) => {
                 if (res.data.status == 'success') {
@@ -164,9 +182,9 @@
                     });
 
                     $('#searchResult').html(data)
+                    swal.close();
                 } else {
-                    $('#btnCheck').show();
-                    $('#btnChecking').hide();
+                    swal.close();
                     Swal.fire({
                         title: notfound,
                         icon: "error",
