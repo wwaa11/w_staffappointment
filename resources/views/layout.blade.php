@@ -17,6 +17,8 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     @vite('resources/css/app.css')
 </head>
 <style>
@@ -73,6 +75,19 @@
         font-weight: 900;
         font-style: normal;
     }
+    }
+
+    /* Flatpickr Customization */
+    .flatpickr-calendar {
+        border-radius: 1rem !important;
+        border: 2px solid #f1f5f9 !important;
+        box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
+    }
+
+    .flatpickr-day.selected {
+        background: #4db1ab !important;
+        border-color: #4db1ab !important;
+    }
 </style>
 
 <body class="prompt-regular bg-slate-50 text-slate-800 min-h-screen">
@@ -111,9 +126,9 @@
                 <a href="{{ route('index') }}">
                     <i class="fa-solid fa-house text-[#4db1ab]"></i>
                     @if (session('langSelect') == 'TH')
-                        กลับหน้าแรก
+                        หน้าแรก
                     @else
-                        Back to Home
+                        Home
                     @endif
                 </a>
             </div>

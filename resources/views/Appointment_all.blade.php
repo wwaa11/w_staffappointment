@@ -118,7 +118,8 @@
                                 <h3 class="font-bold text-slate-800 text-lg leading-tight mb-1">
                                     {{ $appointment['Doctor'] }}
                                 </h3>
-                                <p class="text-sm text-slate-500 font-medium mb-2">{{ $appointment['Clinic'] }}</p>
+                                <p class="text-sm text-slate-500 font-medium mb-2">{{ $appointment['Clinic'] }} <span
+                                        class="font-bold text-red-400">{{ $appointment['Remark'] }}</span></p>
                             </div>
                             @if (substr($appointment['AppointmentNo'], 0, 3) == 'VAP' || substr($appointment['AppointmentNo'], 0, 3) == 'SAP')
                                 <button onclick="deleteAppointment('{{ $appointment['AppointmentNo'] }}')"
@@ -137,14 +138,6 @@
                                     class="text-xs font-mono font-bold text-slate-600 tracking-wider">{{ $appointment['AppointmentNo'] }}</span>
                             </div>
                         </div>
-
-                        @if ($appointment['Remark'])
-                            <div class="mt-3 bg-slate-50 rounded-xl p-3 border border-slate-100">
-                                <span
-                                    class="text-[10px] font-bold text-[#4db1ab] uppercase tracking-widest block mb-1">Remarks</span>
-                                <p class="text-xs text-slate-600 font-medium italic">"{{ $appointment['Remark'] }}"</p>
-                            </div>
-                        @endif
                     </div>
                 </div>
             </div>
