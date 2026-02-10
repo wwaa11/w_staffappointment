@@ -295,7 +295,7 @@ class WebController extends Controller
                             'dayOfWeek' => $thaiDays[$dt->dayOfWeek],
                         ];
                     }
-                    if ($type == 'VAP' && $time->time == '13:00' && $time->available > 0) {
+                    if ($type == 'VAP' && $time->time == '13:00' && $time->available > 0 && $date->appointmentDate < '2026-04-20') {
                         $dt = \Carbon\Carbon::parse($date->appointmentDate);
                         $label = $thaiDays[$dt->dayOfWeek].' '.$dt->day.' '.$thaiMonths[$dt->month].' '.($dt->year + 543);
                         $patient['dates'][] = [
@@ -452,6 +452,46 @@ class WebController extends Controller
             'status' => 'failed',
         ];
 
+        $type = substr($req->appointmentno, 0, 3) == 'SAP' ? 'VAP' : 'SAP';
+        // Check appointment is check up and date > 2026-04-20 also delete vaccine appointment
+        $checkAppointment = DB::connection('SSB')
+            ->table('HNAPPMNT_HEADER')
+            ->where('AppointmentNo', $req->appointmentno)
+            ->select(
+                'HN',
+                'AppointDateTime'
+            )
+            ->first();
+
+        if ($checkAppointment->AppointDateTime >= '2026-04-20') {
+            $vaccineAppointment = DB::connection('SSB')
+                ->table('HNAPPMNT_HEADER')
+                ->where('HN', $checkAppointment->HN)
+                ->where('AppointmentNo', 'like', $type.'%')
+                ->whereNull('cxlReasonCode')
+                ->select(
+                    'AppointmentNo',
+                    'AppointDateTime',
+                )
+                ->first();
+            if ($vaccineAppointment !== null) {
+                $delete_vaccine_response = $this->deleteAppointment($vaccineAppointment->AppointmentNo);
+            }
+        }
+
+        $delete_response = $this->deleteAppointment($req->appointmentno);
+
+        if ($delete_response) {
+            $response = [
+                'status' => 'success',
+            ];
+        }
+
+        return response()->json($response, 200);
+    }
+
+    private function deleteAppointment($appointmentno)
+    {
         $response = Http::withoutVerifying()
             ->withOptions(['verify' => false])
             ->withHeaders([
@@ -459,15 +499,14 @@ class WebController extends Controller
                 'API_KEY' => env('APPMNT_DELETE'),
             ])
             ->delete('https://192.168.99.6:8089/api/appointment/booking', [
-                'appointmentNo' => $req->appointmentno,
+                'appointmentNo' => $appointmentno,
             ]);
 
         if ($response->successful()) {
-            $response = [
-                'status' => 'success',
-            ];
+
+            return true;
         }
 
-        return response()->json($response, 200);
+        return false;
     }
 }
