@@ -177,22 +177,24 @@
                 'date': date,
                 'phone': phone,
                 'remark': $('#remark').val(),
-            }).then((res) => {
+            }).then(async (res) => {
                 if (res.data.status == 'success') {
-                    Swal.fire({
-                            title: res.data.status,
-                            html: res.data.message,
-                            icon: 'info',
-                            confirmButtonText: 'ยืนยัน',
-                            confirmButtonColor: '#119C92',
-                            showCancelButton: false,
-                        })
-                        .then((result) => {
-                            if (result.isConfirmed) {
-                                window.location.replace(
-                                    '{{ route('patient.appointment', $patient['hn']) }}');
-                            }
-                        });
+                    const swal = await Swal.fire({
+                        title: res.data.status,
+                        html: res.data.message,
+                        icon: 'info',
+                        showCancelButton: false,
+                        showConfirmButton: false,
+                        timer: 1500,
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                    })
+                    if (res.data.continue && swal.isDismissed) {
+                        await window.location.replace(
+                            '{{ route('appointment.new', ['hn' => $patient['hn'], 'type' => 'VAP']) }}');
+                    } else if (swal.isDismissed) {
+                        await window.location.replace('{{ route('patient.appointment', $patient['hn']) }}');
+                    }
                 } else {
                     $('#btn-create').show();
                     $('#btn-wait').hide();

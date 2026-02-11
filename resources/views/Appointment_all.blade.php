@@ -44,8 +44,11 @@
     </div>
 
     {{-- Make Appointment Action (Compact) --}}
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
         @foreach ($listAppointment as $type)
+            @if ($type['code'] == 'VAP')
+                @continue
+            @endif
             @if ($type['exist'] == false)
                 <a href="{{ route('appointment.new', ['hn' => $patient['hn'], 'type' => $type['code']]) }}"
                     class="block group">
@@ -172,6 +175,16 @@
                 confirmButtonColor: '#dc3545',
                 showCancelButton: true,
                 cancelButtonText: "ยกเลิก"
+            })
+
+            swal.fire({
+                title: 'กำลังดำเนินการ',
+                icon: 'info',
+                showCancelButton: false,
+                showConfirmButton: false,
+                timer: 1500,
+                timerProgressBar: true,
+                allowOutsideClick: false,
             })
 
             if (result.isConfirmed) {

@@ -13,8 +13,8 @@ class WebController extends Controller
     private $listAppointment = [
         'SAP' => [
             'code' => 'SAP',
-            'name' => 'ตรวจสุขภาพ',
-            'name_eng' => 'Health Checkup',
+            'name' => 'ตรวจสุขภาพ + วัคซีนไข้หวัดใหญ่',
+            'name_eng' => 'Health Checkup + Influenza Vaccine',
             'clinic' => '1800',
             'doctor' => 'V9999',
             'time' => '12:00',
@@ -244,7 +244,7 @@ class WebController extends Controller
                 'AppointmentNo' => $app->AppointmentNo,
                 'Doctor' => $this->setDoctor($app->Doctor),
                 'Clinic' => $this->setClinic($app->Clinic),
-                'Remark' => $app->RemarksMemo,
+                'Remark' => ($app->AppointDateTime < '2026-04-20') ? $app->RemarksMemo : $app->RemarksMemo.' นัดฉีดวัคซีนไข้หวัดใหญ่',
                 'Cancel' => ($app->Doctor == 'V9999') ? true : false,
             ];
         }
@@ -319,6 +319,7 @@ class WebController extends Controller
         $response = [
             'status' => 'failed',
             'message' => 'ทำการนัดหมายไม่สำเร็จ',
+            'continue' => false,
         ];
 
         $hn = $request->hn;
@@ -366,29 +367,15 @@ class WebController extends Controller
             }
         }
 
-        if ($request->appointment_code == 'SAP') {
-            $successAppoint = '';
-
-            if (! $listAppointment['SAP']['exist']) {
-                $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_CHECKUP'), $patient, $request->date, '12:00', 'นัดหมายตรวจสุขภาพ', $remark);
-                if ($create_response) {
-                    $successAppoint .= 'นัดหมายตรวจสุขภาพสำเร็จ <br>';
-                }
-            }
-
-            $vaccine_response = true;
-            if ($request->date >= '2026-04-01' && ! $listAppointment['VAP']['exist']) {
-                $vaccine_response = $this->createAppointment(env('APPOINTMENT_CREATE_VACCINE'), $patient, $request->date, '13:00', 'นัดฉีดวัคซีน', $remark);
-                if ($vaccine_response) {
-                    $successAppoint .= 'นัดฉีดวัคซีนสำเร็จ <br>';
-                }
-            }
-
-            if ($create_response || $vaccine_response) {
+        if ($request->appointment_code == 'SAP' && ! $listAppointment['SAP']['exist']) {
+            $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_CHECKUP'), $patient, $request->date, '12:00', 'นัดหมายตรวจสุขภาพ', $remark);
+            if ($create_response) {
                 $response['status'] = 'success';
-                $response['message'] = $successAppoint;
+                $response['message'] = 'นัดหมายตรวจสุขภาพสำเร็จ';
+                if ($request->date < '2026-04-20') {
+                    $response['continue'] = true;
+                }
             }
-
         } elseif ($request->appointment_code == 'VAP' && ! $listAppointment['VAP']['exist']) {
             $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_VACCINE'), $patient, $request->date, '13:00', 'นัดฉีดวัคซีน', $remark);
             if ($create_response) {
@@ -463,7 +450,7 @@ class WebController extends Controller
             )
             ->first();
 
-        if ($checkAppointment->AppointDateTime >= '2026-04-20') {
+        if ($checkAppointment->AppointDateTime < '2026-04-20') {
             $vaccineAppointment = DB::connection('SSB')
                 ->table('HNAPPMNT_HEADER')
                 ->where('HN', $checkAppointment->HN)
