@@ -13,8 +13,9 @@ class WebController extends Controller
     private $listAppointment = [
         'SAP' => [
             'code' => 'SAP',
-            'name' => 'ตรวจสุขภาพ + วัคซีนไข้หวัดใหญ่',
-            'name_eng' => 'Health Checkup + Influenza Vaccine',
+            'name' => 'ตรวจสุขภาพ',
+            'name_eng' => 'Health Checkup',
+            'note' => '',
             'clinic' => '1800',
             'doctor' => 'V9999',
             'time' => '12:00',
@@ -22,8 +23,21 @@ class WebController extends Controller
         ],
         'VAP' => [
             'code' => 'VAP',
-            'name' => 'วัคซีน',
-            'name_eng' => 'Vaccine',
+            'name' => 'วัคซีนไข้หวัดใหญ่',
+            'name_eng' => 'Influenza Vaccine',
+            'note' => '',
+            'note_eng' => '',
+            'clinic' => '1800',
+            'doctor' => 'V9999',
+            'time' => '13:00',
+            'exist' => false,
+        ],
+        'EVAP' => [
+            'code' => 'EVAP',
+            'name' => 'วัคซีนไข้หวัดใหญ่',
+            'name_eng' => 'Influenza Vaccine',
+            'note' => 'เฉพาะ พนง.ที่ไม่อยู่ในรอบตรวจสุขภาพปีนี้',
+            'note_eng' => 'Only for those who are not in the health checkup round',
             'clinic' => '1800',
             'doctor' => 'V9999',
             'time' => '13:00',
@@ -231,10 +245,39 @@ class WebController extends Controller
         ];
 
         $listAppointment = $this->listAppointment;
+        $showVAP = false;
         foreach ($findAppointment as $app) {
+            $exits = false;
+            $name = '';
             $checkAppointment = substr($app->AppointmentNo, 0, 3);
-            if (array_key_exists($checkAppointment, $listAppointment)) {
-                $listAppointment[$checkAppointment]['exist'] = true;
+            if ($checkAppointment == 'SAP') {
+                $listAppointment['SAP']['exist'] = true;
+                $listAppointment['EVAP']['exist'] = true;
+                if ($app->AppointDateTime >= '2026-04-20') {
+                    $listAppointment['VAP']['exist'] = true;
+                    $name = 'ตรวจสุขภาพ + วัคซีนไข้หวัดใหญ่';
+                    $app->RemarksMemo = $app->RemarksMemo.' + วัคซีนไข้หวัดใหญ่';
+                } else {
+                    $showVAP = true;
+                    $name = 'ตรวจสุขภาพ';
+                }
+                $exits = true;
+            }
+
+            if ($checkAppointment == 'VAP') {
+                $listAppointment['VAP']['exist'] = true;
+                $listAppointment['EVAP']['exist'] = true;
+                $name = 'วัคซีนไข้หวัดใหญ่';
+                $exits = true;
+            }
+
+            $checkAppointment = substr($app->AppointmentNo, 0, 4);
+            if ($checkAppointment == 'EVAP') {
+                $listAppointment['SAP']['exist'] = true;
+                $listAppointment['VAP']['exist'] = true;
+                $listAppointment['EVAP']['exist'] = true;
+                $name = 'วัคซีนไข้หวัดใหญ่';
+                $exits = true;
             }
 
             $date = date('Y-m-d', strtotime($app->AppointDateTime));
@@ -242,14 +285,15 @@ class WebController extends Controller
             $patient['appointments'][] = [
                 'Date' => $fulldate,
                 'AppointmentNo' => $app->AppointmentNo,
+                'Name' => $name,
                 'Doctor' => $this->setDoctor($app->Doctor),
                 'Clinic' => $this->setClinic($app->Clinic),
-                'Remark' => ($app->AppointDateTime < '2026-04-20') ? $app->RemarksMemo : $app->RemarksMemo.' นัดฉีดวัคซีนไข้หวัดใหญ่',
+                'Remark' => $app->RemarksMemo,
                 'Cancel' => ($app->Doctor == 'V9999') ? true : false,
             ];
         }
 
-        return view('Appointment_all')->with(compact('patient', 'listAppointment'));
+        return view('Appointment_all')->with(compact('patient', 'listAppointment', 'showVAP'));
     }
 
     public function newAppointment($hn, $type)
@@ -295,7 +339,7 @@ class WebController extends Controller
                             'dayOfWeek' => $thaiDays[$dt->dayOfWeek],
                         ];
                     }
-                    if ($type == 'VAP' && $time->time == '13:00' && $time->available > 0 && $date->appointmentDate < '2026-04-20') {
+                    if (($type == 'VAP' || $type == 'EVAP') && $time->time == '13:00' && $time->available > 0 && $date->appointmentDate < '2026-04-20') {
                         $dt = \Carbon\Carbon::parse($date->appointmentDate);
                         $label = $thaiDays[$dt->dayOfWeek].' '.$dt->day.' '.$thaiMonths[$dt->month].' '.($dt->year + 543);
                         $patient['dates'][] = [
@@ -368,7 +412,7 @@ class WebController extends Controller
         }
 
         if ($request->appointment_code == 'SAP' && ! $listAppointment['SAP']['exist']) {
-            $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_CHECKUP'), $patient, $request->date, '12:00', 'นัดหมายตรวจสุขภาพ', $remark);
+            $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_SAP'), $patient, $request->date, '12:00', 'นัดหมายตรวจสุขภาพ', $remark);
             if ($create_response) {
                 $response['status'] = 'success';
                 $response['message'] = 'นัดหมายตรวจสุขภาพสำเร็จ';
@@ -377,7 +421,13 @@ class WebController extends Controller
                 }
             }
         } elseif ($request->appointment_code == 'VAP' && ! $listAppointment['VAP']['exist']) {
-            $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_VACCINE'), $patient, $request->date, '13:00', 'นัดฉีดวัคซีน', $remark);
+            $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_VAP'), $patient, $request->date, '13:00', 'นัดฉีดวัคซีน', $remark);
+            if ($create_response) {
+                $response['status'] = 'success';
+                $response['message'] = 'นัดฉีดวัคซีนสำเร็จ';
+            }
+        } elseif ($request->appointment_code == 'EVAP' && ! $listAppointment['EVAP']['exist']) {
+            $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_EVAP'), $patient, $request->date, '13:00', 'นัดฉีดวัคซีน', $remark);
             if ($create_response) {
                 $response['status'] = 'success';
                 $response['message'] = 'นัดฉีดวัคซีนสำเร็จ';

@@ -46,7 +46,7 @@
     {{-- Make Appointment Action (Compact) --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
         @foreach ($listAppointment as $type)
-            @if ($type['code'] == 'VAP')
+            @if ($type['code'] == 'VAP' && !$showVAP)
                 @continue
             @endif
             @if ($type['exist'] == false)
@@ -61,8 +61,10 @@
                             <div class="text-sm font-bold text-slate-800">
                                 @if (session('langSelect') == 'TH')
                                     ทำนัด{{ $type['name'] }}
+                                    <div class="text-xs text-red-500">{{ $type['note'] }}</div>
                                 @else
                                     {{ $type['name_eng'] }} Appt
+                                    <div class="text-xs text-red-500">{{ $type['note_eng'] }}</div>
                                 @endif
                             </div>
                         </div>
@@ -124,7 +126,9 @@
                                 <p class="text-sm text-slate-500 font-medium mb-2">{{ $appointment['Clinic'] }} <span
                                         class="font-bold text-red-400">{{ $appointment['Remark'] }}</span></p>
                             </div>
-                            @if (substr($appointment['AppointmentNo'], 0, 3) == 'VAP' || substr($appointment['AppointmentNo'], 0, 3) == 'SAP')
+                            @if (substr($appointment['AppointmentNo'], 0, 3) == 'VAP' ||
+                                    substr($appointment['AppointmentNo'], 0, 3) == 'SAP' ||
+                                    substr($appointment['AppointmentNo'], 0, 4) == 'EVAP')
                                 <button onclick="deleteAppointment('{{ $appointment['AppointmentNo'] }}')"
                                     class="text-slate-300 hover:text-red-500 transition-colors p-2">
                                     <i class="fa-solid fa-calendar-xmark text-lg"></i>Delete
@@ -177,17 +181,17 @@
                 cancelButtonText: "ยกเลิก"
             })
 
-            swal.fire({
-                title: 'กำลังดำเนินการ',
-                icon: 'info',
-                showCancelButton: false,
-                showConfirmButton: false,
-                timer: 1500,
-                timerProgressBar: true,
-                allowOutsideClick: false,
-            })
-
             if (result.isConfirmed) {
+                swal.fire({
+                    title: 'กำลังดำเนินการ',
+                    icon: 'info',
+                    showCancelButton: false,
+                    showConfirmButton: false,
+                    timer: 1500,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                })
+
                 axios.post('{{ route('appointment.delete') }}', {
                     'appointmentno': appno,
                 }).then((res) => {

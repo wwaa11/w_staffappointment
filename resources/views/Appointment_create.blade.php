@@ -94,7 +94,7 @@
         </div>
 
         {{-- Remark --}}
-        <div class="mb-8">
+        {{-- <div class="mb-8">
             <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Remark
                 (Optional)</label>
             <div class="relative">
@@ -105,7 +105,7 @@
                     class="w-full rounded-2xl border-2 border-slate-50 bg-slate-50 p-4 pl-12 text-slate-700 font-medium focus:border-[#4db1ab] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#4db1ab]/10 transition-all placeholder:text-slate-300"
                     id="remark" name="remark" autocomplete="off" placeholder="Any additional notes..."></textarea>
             </div>
-        </div>
+        </div> --}}
 
         {{-- Submit Buttons --}}
         <button
