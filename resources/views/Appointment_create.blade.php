@@ -74,6 +74,35 @@
             </div>
         </div>
 
+        {{-- Time Selection --}}
+        <div class="mb-6 hidden" id="timeSelection">
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">
+                @if (session('langSelect') == 'TH')
+                    เวลาที่ต้องการนัด
+                @else
+                    Appointment Time
+                @endif
+            </label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+                <select id="timeSelect" name="time"
+                    class="w-full rounded-2xl border-2 border-slate-50 bg-slate-50 p-4 pl-12 text-slate-700 font-bold focus:border-[#4db1ab] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#4db1ab]/10 transition-all appearance-none cursor-pointer">
+                    <option value="">
+                        @if (session('langSelect') == 'TH')
+                            เลือกเวลา
+                        @else
+                            Select Time
+                        @endif
+                    </option>
+                </select>
+                <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+            </div>
+        </div>
+
         {{-- Phone Number --}}
         <div class="mb-6">
             <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">
@@ -92,20 +121,6 @@
                     id="phone" type="text" pattern="\d*" name="phone" placeholder="08x-xxx-xxxx">
             </div>
         </div>
-
-        {{-- Remark --}}
-        {{-- <div class="mb-8">
-            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Remark
-                (Optional)</label>
-            <div class="relative">
-                <div class="absolute top-4 left-0 pl-4 flex items-start pointer-events-none text-slate-400">
-                    <i class="fa-solid fa-comment-dots"></i>
-                </div>
-                <textarea rows="3"
-                    class="w-full rounded-2xl border-2 border-slate-50 bg-slate-50 p-4 pl-12 text-slate-700 font-medium focus:border-[#4db1ab] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#4db1ab]/10 transition-all placeholder:text-slate-300"
-                    id="remark" name="remark" autocomplete="off" placeholder="Any additional notes..."></textarea>
-            </div>
-        </div> --}}
 
         {{-- Submit Buttons --}}
         <button
@@ -138,7 +153,8 @@
 @section('scripts')
     <script>
         $(document).ready(function() {
-            const allowedDates = @json(collect($patient['dates'])->pluck('value'));
+            const allDateData = @json($patient['dates']);
+            const allowedDates = allDateData.map(d => d.value);
 
             flatpickr("#dateSelect", {
                 enable: allowedDates,
@@ -148,6 +164,23 @@
                 disableMobile: "true",
                 locale: {
                     firstDayOfWeek: 7
+                },
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (dateStr) {
+                        const selectedDateData = allDateData.find(d => d.value === dateStr);
+                        if (selectedDateData && selectedDateData.times) {
+                            const $timeSelect = $('#timeSelect');
+                            $timeSelect.empty();
+                            $timeSelect.append('<option value="">' + ('{{ session('langSelect') }}' ===
+                                'TH' ? 'เลือกเวลา' : 'Select Time') + '</option>');
+                            selectedDateData.times.forEach(time => {
+                                $timeSelect.append(`<option value="${time}">${time}</option>`);
+                            });
+                            $('#timeSelection').removeClass('hidden').addClass('animate-fade-in');
+                        }
+                    } else {
+                        $('#timeSelection').addClass('hidden');
+                    }
                 }
             });
         });
@@ -157,14 +190,15 @@
             $('#btn-wait').show();
 
             date = $('#dateSelect').val()
+            time = $('#timeSelect').val()
             phone = $('#phone').val()
 
-            if (date == '' || phone == '' || phone.length < 10) {
+            if (date == '' || time == '' || phone == '' || phone.length < 10) {
                 $('#btn-create').show();
                 $('#btn-wait').hide();
 
                 return Swal.fire({
-                    title: 'โปรดระบุ วันที่ และ เบอร์โทรศัพท์',
+                    title: '{{ session('langSelect') == 'TH' ? 'โปรดระบุ วันที่ เวลา และ เบอร์โทรศัพท์' : 'Please provide Date, Time and Contact Number' }}',
                     icon: "error",
                     confirmButtonText: 'ตกลง',
                     confirmButtonColor: '#d33328',
@@ -175,6 +209,7 @@
                 'appointment_code': '{{ $patient['appointment_code'] }}',
                 'hn': '{{ $patient['hn'] }}',
                 'date': date,
+                'time': time,
                 'phone': phone,
                 'remark': $('#remark').val(),
             }).then(async (res) => {
@@ -193,7 +228,8 @@
                         await window.location.replace(
                             '{{ route('appointment.new', ['hn' => $patient['hn'], 'type' => 'VAP']) }}');
                     } else if (swal.isDismissed) {
-                        await window.location.replace('{{ route('patient.appointment', $patient['hn']) }}');
+                        await window.location.replace(
+                        '{{ route('patient.appointment', $patient['hn']) }}');
                     }
                 } else {
                     $('#btn-create').show();

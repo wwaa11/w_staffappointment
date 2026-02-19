@@ -326,31 +326,29 @@ class WebController extends Controller
             $thaiMonths = ['', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
 
             foreach ($dates as $date) {
+                $availableTimes = [];
                 foreach ($date->appointmentTime as $time) {
-                    if ($type == 'SAP' && $time->time == '12:00' && $time->available > 0) {
-                        $dt = \Carbon\Carbon::parse($date->appointmentDate);
-                        $label = $thaiDays[$dt->dayOfWeek].' '.$dt->day.' '.$thaiMonths[$dt->month].' '.($dt->year + 543);
-                        $patient['dates'][] = [
-                            'value' => $date->appointmentDate,
-                            'label' => $label,
-                            'day' => $dt->day,
-                            'month' => $thaiMonths[$dt->month],
-                            'year' => $dt->year + 543,
-                            'dayOfWeek' => $thaiDays[$dt->dayOfWeek],
-                        ];
+                    if ($time->available > 0) {
+                        $availableTimes[] = $time->time;
                     }
-                    if (($type == 'VAP' || $type == 'EVAP') && $time->time == '13:00' && $time->available > 0 && $date->appointmentDate < '2026-04-20') {
-                        $dt = \Carbon\Carbon::parse($date->appointmentDate);
-                        $label = $thaiDays[$dt->dayOfWeek].' '.$dt->day.' '.$thaiMonths[$dt->month].' '.($dt->year + 543);
-                        $patient['dates'][] = [
-                            'value' => $date->appointmentDate,
-                            'label' => $label,
-                            'day' => $dt->day,
-                            'month' => $thaiMonths[$dt->month],
-                            'year' => $dt->year + 543,
-                            'dayOfWeek' => $thaiDays[$dt->dayOfWeek],
-                        ];
+                }
+
+                if (count($availableTimes) > 0) {
+                    if (($type == 'VAP' || $type == 'EVAP') && ($date->appointmentDate <= '2026-04-01' || $date->appointmentDate >= '2026-04-20')) {
+                        continue;
                     }
+
+                    $dt = \Carbon\Carbon::parse($date->appointmentDate);
+                    $label = $thaiDays[$dt->dayOfWeek].' '.$dt->day.' '.$thaiMonths[$dt->month].' '.($dt->year + 543);
+                    $patient['dates'][] = [
+                        'value' => $date->appointmentDate,
+                        'label' => $label,
+                        'day' => $dt->day,
+                        'month' => $thaiMonths[$dt->month],
+                        'year' => $dt->year + 543,
+                        'dayOfWeek' => $thaiDays[$dt->dayOfWeek],
+                        'times' => $availableTimes,
+                    ];
                 }
             }
         }
@@ -412,7 +410,7 @@ class WebController extends Controller
         }
 
         if ($request->appointment_code == 'SAP' && ! $listAppointment['SAP']['exist']) {
-            $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_SAP'), $patient, $request->date, '12:00', 'นัดหมายตรวจสุขภาพ', $remark);
+            $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_SAP'), $patient, $request->date, $request->time, 'นัดหมายตรวจสุขภาพ', $remark);
             if ($create_response) {
                 $response['status'] = 'success';
                 $response['message'] = 'นัดหมายตรวจสุขภาพสำเร็จ';
@@ -421,13 +419,13 @@ class WebController extends Controller
                 }
             }
         } elseif ($request->appointment_code == 'VAP' && ! $listAppointment['VAP']['exist']) {
-            $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_VAP'), $patient, $request->date, '13:00', 'นัดฉีดวัคซีน', $remark);
+            $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_VAP'), $patient, $request->date, $request->time, 'นัดฉีดวัคซีน', $remark);
             if ($create_response) {
                 $response['status'] = 'success';
                 $response['message'] = 'นัดฉีดวัคซีนสำเร็จ';
             }
         } elseif ($request->appointment_code == 'EVAP' && ! $listAppointment['EVAP']['exist']) {
-            $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_EVAP'), $patient, $request->date, '13:00', 'นัดฉีดวัคซีน', $remark);
+            $create_response = $this->createAppointment(env('APPOINTMENT_CREATE_EVAP'), $patient, $request->date, $request->time, 'นัดฉีดวัคซีน', $remark);
             if ($create_response) {
                 $response['status'] = 'success';
                 $response['message'] = 'นัดฉีดวัคซีนสำเร็จ';
@@ -459,21 +457,6 @@ class WebController extends Controller
         if ($response->successful()) {
             $response = $response->json();
             $appointment_no = $response['detail']['appointmentNo'];
-
-            if ($remark !== null) {
-                $remark_response = Http::withoutVerifying()
-                    ->withOptions(['verify' => false])
-                    ->withHeaders([
-                        'Content-Type' => 'application/json',
-                        'API_KEY' => env('DOCTOR_TIME_KEY'),
-                    ])
-                    ->post('https://192.168.99.6:8089/api/appointment/appointmentMsg', [
-                        'appointmentNo' => $appointment_no,
-                        'appointmentMsgType' => '5',
-                        'remarksMemo' => $remark,
-                    ]);
-            }
-
             $response = true;
         } else {
 
