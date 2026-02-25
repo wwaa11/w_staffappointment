@@ -34,8 +34,8 @@ class WebController extends Controller
         ],
         'EVAP' => [
             'code' => 'EVAP',
-            'name' => 'วัคซีนไข้หวัดใหญ่',
-            'name_eng' => 'Influenza Vaccine',
+            'name' => 'วัคซีนไข้หวัดใหญ่ (ไม่ได้ตรวจสุขภาพปีนี้)',
+            'name_eng' => 'Influenza Vaccine (Not in health checkup this year)',
             'note' => 'เฉพาะ พนง.ที่ไม่อยู่ในรอบตรวจสุขภาพปีนี้',
             'note_eng' => 'Only for those who are not in the health checkup round',
             'clinic' => '1800',
@@ -338,6 +338,10 @@ class WebController extends Controller
                         continue;
                     }
 
+                    if (($type == 'SAP') && ($date->appointmentDate >= '2026-04-01' && $date->appointmentDate < '2026-04-20')) {
+                        continue;
+                    }
+
                     $dt = \Carbon\Carbon::parse($date->appointmentDate);
                     $label = $thaiDays[$dt->dayOfWeek].' '.$dt->day.' '.$thaiMonths[$dt->month].' '.($dt->year + 543);
                     $patient['dates'][] = [
@@ -371,12 +375,16 @@ class WebController extends Controller
         $Referance = DB::connection('SSB')
             ->table('HNPAT_REF')
             ->where('HN', $hn)
+            ->whereIn('IDCardType', [1, 5])
             ->orderBy('IDCardType', 'asc')
             ->select(
                 'IDCardType',
                 'RefNo'
             )
             ->first();
+        if ($Referance == null) {
+            $response['message'] = 'ไม่พบเลขบัตรประชาชน / Passport';
+        }
 
         $patient = [
             'hn' => $hn,

@@ -59,13 +59,8 @@
                                 <i class="fa-solid fa-calendar-plus text-lg text-slate-800"></i>
                             </div>
                             <div class="text-sm font-bold text-slate-800">
-                                @if (session('langSelect') == 'TH')
-                                    ทำนัด{{ $type['name'] }}
-                                    <div class="text-xs text-red-500">{{ $type['note'] }}</div>
-                                @else
-                                    {{ $type['name_eng'] }} Appt
-                                    <div class="text-xs text-red-500">{{ $type['note_eng'] }}</div>
-                                @endif
+                                ทำนัด{{ $type['name'] }}
+                                <div class="text-xs text-red-500">{{ $type['note'] }}</div>
                             </div>
                         </div>
                         <i class="fa-solid fa-chevron-right text-slate-800/30 text-xs"></i>
